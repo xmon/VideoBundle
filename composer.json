@@ -1,14 +1,14 @@
 {
-    "name": "sujayjaju/video-bundle",
+    "name": "nordfabrik/video-bundle",
     "type": "symfony-bundle",
     "description": "Video Bundle adding functiunalities to Sonata media bundle:<br>=> a video provider- handle video upload- re-encode uploaded video to th defined formats   - thumbs generation",
     "keywords": ["video", "bundle", "media", "ffmpeg", "sonata"],
-    "homepage": "http://github.com/sujayjaju/MaesboxVideoBundle",
+    "homepage": "http://github.com/nordfabrik/VideoBundle",
     "license": "MIT",
     "authors": [
         {
-            "name": "Sujay Jaju ",
-            "email": "sujay.jaju@gmail.com"
+            "name": "Marc Dibold ",
+            "email": "dibold@nordfabrik.com"
         }
     ],
     "require": {
