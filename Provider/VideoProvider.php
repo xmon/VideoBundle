@@ -74,6 +74,10 @@ class VideoProvider extends BaseProvider
         $this->fixBinaryContent($media);
         $this->fixFilename($media);
 
+		if (!is_object($media->getBinaryContent()) && !$media->getBinaryContent()) {
+            return;
+        }
+        
         $fileinfos = new ffmpeg_movie($media->getBinaryContent()->getRealPath(), false);
        
         if (!$media->getProviderReference()) {
@@ -124,7 +128,7 @@ class VideoProvider extends BaseProvider
 
     public function generateThumbnails(MediaInterface $media, $ext = 'jpeg') 
     {
-        echo "Processing Video..."; flush();
+        echo "Video wird verarbeitet. Einen Moment bitte..."; flush();
 
         //convert video
         $source =  sprintf('%s/%s/%s',
@@ -132,22 +136,33 @@ class VideoProvider extends BaseProvider
             $this->generatePath($media),
             $media->getProviderReference());
 
-        $path = sprintf('%s/%s/videos_big_%s',
+        $path = sprintf('%s/%s/videos_mp4_%s',
             $this->getFilesystem()->getAdapter()->getDirectory(),
             $this->generatePath($media),
             $media->getProviderReference());
 
+        $path2 = sprintf('%s/%s/videos_ogg_%s',
+            $this->getFilesystem()->getAdapter()->getDirectory(),
+            $this->generatePath($media),
+            $media->getProviderReference());
+
+
         $path = preg_replace('/\.[^.]+$/', '.' . 'mp4', $path);
+        $ogg = preg_replace('/\.[^.]+$/', '.' . 'ogv', $path2);
 
-        $height = round(480 * $media->getHeight() / $media->getWidth());
-
-        $fast_preset = "-coder 1 -flags +loop -cmp +chroma -partitions +parti8x8+parti4x4+partp8x8+partb8x8 -me_method hex -subq 6 -me_range 16 -g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 -b_strategy 1 -qcomp 0.6 -qmin 10 -qmax 51 -qdiff 4 -bf 3 -refs 2 -directpred 1 -trellis 1 -flags2 +bpyramid+mixed_refs+wpred+dct8x8+fastpskip -wpredp 2 -rc_lookahead 30";
-        $ffcmd = "ffmpeg -i $source $fast_preset -s 480x$height -ab 128K -b 896K -vcodec libx264 -acodec aac -strict experimental $path" ;
-        $bxcmd = "MP4Box -inter 200 $source" ;
-        //echo $ffcmd; exit;
+        $height = round(640 * $media->getHeight() / $media->getWidth());
+        
+        // ffmpeg -i /var/www/vhosts/nordfabrik.com/uniscene-portal/web/uploads/media/social/0001/02/528f56aad4b570ca55182652dcccedf0b08147a5.mp4 -vcodec libx264 -acodec libmp3lame -s 640x360 -b:a 128K -b:v 896K -strict experimental -y /var/www/vhosts/nordfabrik.com/uniscene-portal/web/uploads/media/social/0001/02/videos_mp4_528f56aad4b570ca55182652dcccedf0b08147a5.mp4
+        $ffcmd = "ffmpeg -i $source -vcodec libx264 -acodec libmp3lame -s 640x$height -b:a 128K -b:v 896K -strict experimental -y $path";
+        #$bxcmd = "MP4Box -inter 200 $source" ;
+        $ffogg = "ffmpeg -i $source -vcodec libtheora -acodec libvorbis -s 640x$height -b:a 128K -b:v 896K -strict experimental -y $ogg";
+        
         $output = array();
         $return = 0;
-        exec("$ffcmd && $bxcmd", $output, $return);
+        exec("$ffcmd", $output, $return);
+        #exec("$bxcmd", $output, $return);
+        exec("$ffogg", $output, $return);
+
 
         $this->generateReferenceImage($media);
         
@@ -191,15 +206,56 @@ class VideoProvider extends BaseProvider
         
     }
     
+    /**
+     * {@inheritdoc}
+     */
+    public function getFormatName(MediaInterface $media, $format)
+    {
+        if ($format == 'admin') {
+            return 'admin';
+        }
+
+        if ($format == 'reference') {
+            return 'reference';
+        }
+		
+		return $format;
+		
+        $baseName = $media->getContext().'_';
+        if (substr($format, 0, strlen($baseName)) == $baseName) {
+            return $format;
+        }
+
+        return $baseName.$format;
+    }
+    
     public function generatePublicUrl(MediaInterface $media, $format) 
     {
-        if ($format == 'reference') {
+        if ($format == 'reference')
+        {
             $path = sprintf('%s/%s', $this->generatePath($media), $media->getProviderReference());
-        }elseif ($format == 'admin') {
-            $path = sprintf('%s/%s', $this->generatePath($media),str_replace($this->getExtension($media), 'jpeg', $media->getProviderReference()));
-        } else {
-            $path = sprintf('%s/%s_%s', $this->generatePath($media), $format, $media->getProviderReference());
         }
+        elseif ($format == 'admin')
+        {
+            $path = sprintf('%s/%s', $this->generatePath($media), str_replace($this->getExtension($media), 'jpeg', $media->getProviderReference()));
+        }
+        elseif ($format == 'videos_ogv')
+        {
+            $path = sprintf('%s/%s_%s', $this->generatePath($media), $format, str_replace($media->getExtension(), 'ogv', $media->getProviderReference()));
+        }
+        elseif ($format == 'videos_mp4')
+        {
+            $path = sprintf('%s/%s_%s', $this->generatePath($media), $format, str_replace($media->getExtension(), 'mp4', $media->getProviderReference()));
+        }
+        else
+        {
+	        $path = sprintf('%s/%s', $this->generatePath($media), str_replace($this->getExtension($media), 'jpeg', $media->getProviderReference()));
+        }
+        /*else
+        {
+            $path = sprintf('%s/%s_%s', $this->generatePath($media), $format, $media->getProviderReference());
+        }*/
+        
         //$path = sprintf('%s/%s', $this->generatePath($media), $media->getProviderReference());
         return $this->getCdn()->getPath($path, $media->getCdnIsFlushable());
         //return ;
@@ -276,18 +332,32 @@ class VideoProvider extends BaseProvider
     
     public function generateReferenceImage(MediaInterface $media)
     {
+    	#$this->fixBinaryContent($media);
+    	#$this->setFileContents($media);
+    	
         $fileinfos = new ffmpeg_movie(sprintf('%s/%s/%s',$this->getFilesystem()->getAdapter()->getDirectory(), $this->generatePath($media),$media->getProviderReference()), false);
        
         if (!$media->getProviderReference()) {
             $media->setProviderReference($this->generateReferenceName($media));
         }
-        $frame_pos = round($fileinfos->getFrameCount() / 2);
-        $frame = $fileinfos->getFrame($frame_pos);
-        while(!$frame && $frame_pos > 0){
+        
+        #$frame_pos = round($fileinfos->getFrameCount() / 2);
+        #$frame = $fileinfos->getFrame($frame_pos);
+        
+        //On calcule le nombre d'images par seconde
+        $img_par_s=$fileinfos->getFrameCount()/$fileinfos->getDuration();        
+        
+        // Récupère l'image
+        $frame = $fileinfos->getFrame(15*$img_par_s);
+        
+        while(!$frame && $frame_pos > 0)
+        {
             $frame_pos--;
             $frame = $fileinfos->getFrame($frame_pos);
         }
-        if(!$frame){
+        
+        if(!$frame)
+        {
             echo "Thumbnail Generation Failed"; exit;
         }
         
@@ -425,10 +495,23 @@ class VideoProvider extends BaseProvider
         {
             $contents = $media->getBinaryContent()->getRealPath();
         }
+        
         $destination = sprintf('%s/%s/',$this->getFilesystem()->getAdapter()->getDirectory(), $this->generatePath($media));
+        
         if(!is_dir($destination))
-            mkdir($destination,775,true);
-        move_uploaded_file($contents,$destination.$media->getProviderReference());
+        {
+            mkdir($destination, 775, true);
+        }
+        
+        if(is_uploaded_file($contents) )
+        {
+	        move_uploaded_file($contents,$destination.$media->getProviderReference());
+        }
+        else
+        {
+	        copy($contents,$destination.$media->getProviderReference());
+        }
+        
     }
 
     /**
@@ -437,20 +520,24 @@ class VideoProvider extends BaseProvider
      * @param array                                    $options
      *
      * @return \Imagine\Image\Box
-     */    
+     */
     protected function getBoxHelperProperties(MediaInterface $media, $format, $options = array())
     {
-        if ($format == 'reference') {
+        if ($format == 'reference')
+        {
             return $media->getBox();
         }
 
-        if (isset($options['width']) || isset($options['height'])) {
+        if (isset($options['width']) || isset($options['height']))
+        {
             $settings = array(
                 'width'  => isset($options['width']) ? $options['width'] : null,
                 'height' => isset($options['height']) ? $options['height'] : null,
             );
 
-        } else {
+        }
+        else
+        {
             $settings = $this->getFormat($format);
         }
 
@@ -465,7 +552,7 @@ class VideoProvider extends BaseProvider
     protected function getExtension(MediaInterface $media)
     {
         $ext = $media->getExtension();
-        if (!is_string($ext) || strlen($ext) < 3) {
+        if (!is_string($ext) || strlen($ext) < 2) {
             $ext = "mp4";
         }
         return $ext;

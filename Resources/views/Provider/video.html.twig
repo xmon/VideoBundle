@@ -1,28 +1,8 @@
-{#{% javascripts '@MaesboxVideoBundle/Resources/public/js/jwplayer.js' %}#}
-{#<script type="text/javascript" src="{{ asset_url }}"></script>#}
-{#{% endjavascripts %}#}
-{#<div id="container"Video Player Loading...</div>#}
-{#{% javascripts '@MaesboxVideoBundle/Resources/public/js/jwplayer.html5.js' %}#}
-{#<script type="text/javascript" src="{{ asset_url }}"></script>#}
-{#{% endjavascripts %}#}
-
-{#<script type="text/javascript">#}
-    {#jwplayer("container").setup({#}
-        {#file: "{{ options.file }}",#}
-        {#image: "/uploads/media/{{ options.thumbnail.getKey() }}",#}
-        {#width: "{{ 480 }}",#}
-        {#height: "{{ 320 }}",#}
-        {#//skin: "/common/player/glow/glow.xml",#}
-        {#modes: [#}
-            {#{ type: "html5" },#}
-            {#{ type: "flash", src: "{{ asset('bundles/maesboxvideo/player/jwplayer.flash.swf') }}" },#}
-            {#{ type: "http" }#}
-        {#]#}
-    {#});#}
-{#</script>#}
+<script src="//vjs.zencdn.net/4.6/video.js"></script>
+<link href="//vjs.zencdn.net/4.6/video-js.css" rel="stylesheet">
 
 <video id="video-player-{{ options.id }}" class="video-js vjs-default-skin vjs-big-play-centered"
-       controls preload="metadata" width="600" height="{{ 600 * options.height / options.width }}"
+       controls preload="metadata" width="100%" height="{% if options.height %}{{ 600 * options.height / options.width }}{% else %}420px{% endif %}"
        poster= "/uploads/media/{{ options.thumbnail.getKey() }}"
        data-setup='{"example_option":true}'>
     <source src="{{ options.file }}" type='video/mp4' />
