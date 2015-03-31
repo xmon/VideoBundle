@@ -1,14 +1,14 @@
 {
-    "name": "nordfabrik/video-bundle",
+    "name": "useallfive/video-bundle",
     "type": "symfony-bundle",
     "description": "Video Bundle adding functiunalities to Sonata media bundle:<br>=> a video provider- handle video upload- re-encode uploaded video to th defined formats   - thumbs generation",
     "keywords": ["video", "bundle", "media", "ffmpeg", "sonata"],
-    "homepage": "http://github.com/nordfabrik/VideoBundle",
+    "homepage": "http://github.com/UseAllFive/VideoBundle",
     "license": "MIT",
     "authors": [
         {
-            "name": "Marc Dibold ",
-            "email": "dibold@nordfabrik.com"
+            "name": "Jason Moore",
+            "email": "jmoore@useallfive.com"
         }
     ],
     "require": {
