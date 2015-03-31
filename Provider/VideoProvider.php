@@ -23,7 +23,10 @@ use Symfony\Component\Form\FormBuilder;
 
 
 use Gaufrette\Filesystem;
-use ffmpeg_movie; 
+use FFMpeg\FFProbe; 
+use FFMpeg\Coordinate\Timecode;
+use FFMpeg\FFMpeg;
+
 use GetId3\GetId3Core as GetId3;
 
 use Symfony\Component\Form\Form;
@@ -78,26 +81,43 @@ class VideoProvider extends BaseProvider
             return;
         }
         
-        $fileinfos = new ffmpeg_movie($media->getBinaryContent()->getRealPath(), false);
-       
+        $ffprobe = FFProbe::create();
+        $ffmpeg = FFMpeg::create();
+
+        $stream = $ffprobe
+                        ->streams($media->getBinaryContent()->getRealPath())
+                        ->videos()
+                        ->first();
+
+        $framecount = $stream->get('nb_frames');
+        $height = $stream->get('height');
+        $widht = $stream->get('width');
+
+        $video = $ffmpeg->open($media->getBinaryContent()->getRealPath());
+
         if (!$media->getProviderReference()) {
             $media->setProviderReference($this->generateReferenceName($media));
         }
 
-        $frame_pos = round($fileinfos->getFrameCount() / 2);
-        $frame = $fileinfos->getFrame($frame_pos);
+        $frame_pos = round($framecount / 2);
+        $timecode = new Timecode("0", "0", "0", $frame_pos);
+        $frame = $video->frame($timecode);
         while(!$frame && $frame_pos > 0){
             $frame_pos--;
-            $frame = $fileinfos->getFrame($frame_pos);
+            $timecodeString = sprintf("0:0:0:0.%d", $frame_pos);
+            $timecode = new Timecode("0", "0", "0", $frame_pos);
+            $frame = $video->frame($timecode);
         }
+
         if(!$frame){
             echo "Thumbnail Generation Failed"; exit;
         }
+
         if ($media->getBinaryContent()) {
             $media->setContentType($media->getBinaryContent()->getMimeType());
             $media->setSize($media->getBinaryContent()->getSize());
-            $media->setWidth($frame->getWidth());
-            $media->setHeight($frame->getHeight());
+            $media->setWidth($width);
+            $media->setHeight($height);
             $media->setLength($fileinfos->getDuration());
         }
 
