@@ -18,4 +18,3 @@ services:
             - @sonata.media.metadata.proxy
         calls:
             - [ setTemplates, [ { helper_thumbnail: MaesboxVideoBundle:Provider:thumbnail.html.twig, helper_view: MaesboxVideoBundle:Provider:video.html.twig } ] ]
-        
