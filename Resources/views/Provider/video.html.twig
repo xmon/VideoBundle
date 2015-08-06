@@ -1,9 +1,17 @@
-<script src="//vjs.zencdn.net/4.6/video.js"></script>
-<link href="//vjs.zencdn.net/4.6/video-js.css" rel="stylesheet">
+<div id="container_{{ media.id }}">Video Player Loading...</div>
 
-<video id="video-player-{{ options.id }}" class="video-js vjs-default-skin vjs-big-play-centered"
-       controls preload="metadata" width="100%" height="{% if options.height %}{{ 600 * options.height / options.width }}{% else %}420px{% endif %}"
-       poster= "/uploads/media/{{ options.thumbnail.getKey() }}"
-       data-setup='{"example_option":true}'>
-    <source src="{{ options.file }}" type='video/mp4' />
-</video>
+
+<script type="text/javascript">
+    jwplayer("container_{{ media.id }}").setup({
+        file: "{{ options.file }}",
+        image: "/uploads/media/{{ options.thumbnail.getKey() }}",
+        width: "{{ 525 }}",
+        height: "{{ 350 }}",
+        //skin: "/common/player/glow/glow.xml",
+        modes: [
+            { type: "html5" },
+            { type: "flash", src: "{{ asset('bundles/maesboxvideo/player/jwplayer.flash.swf') }}" },
+            { type: "http" }
+        ]
+    });
+</script>
