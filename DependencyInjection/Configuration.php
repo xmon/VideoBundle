@@ -20,6 +20,15 @@ class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('maesbox_video');
 
+        $rootNode
+            ->children()
+                ->scalarNode('ffmpeg_binary')->isRequired()->end()
+                ->scalarNode('ffprobe_binary')->isRequired()->end()
+                ->scalarNode('binary_timeout')->defaultValue(60)->end()
+                ->scalarNode('threads_count')->defaultValue(4)->end()
+            ->end()
+        ->end();
+
         // Here you should define the parameters that are allowed to
         // configure your bundle. See the documentation linked above for
         // more information on that topic.

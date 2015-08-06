@@ -46,17 +46,19 @@ class VideoProvider extends BaseProvider
     protected $ffmpeg;
 
     /**
-    * @param string $name
-    * @param \Gaufrette\Filesystem $filesystem
-    * @param \Sonata\MediaBundle\CDN\CDNInterface $cdn
-    * @param \Sonata\MediaBundle\Generator\GeneratorInterface $pathGenerator
-    * @param \Sonata\MediaBundle\Thumbnail\ThumbnailInterface $thumbnail
-    * @param \Imagine\Image\ImagineInterface $adapter
-    * @param array $allowedExtensions
-    * @param array $allowedMimeTypes
-    * @param \Sonata\MediaBundle\Metadata\MetadataBuilderInterface $metadata
-    */
-    public function __construct($name, Filesystem $filesystem, CDNInterface $cdn, GeneratorInterface $pathGenerator, ThumbnailInterface $thumbnail, array $allowedExtensions = array(), array $allowedMimeTypes = array(), ResizerInterface $resizer, MetadataBuilderInterface $metadata = null )
+     * @param string $name
+     * @param Filesystem $filesystem
+     * @param CDNInterface $cdn
+     * @param GeneratorInterface $pathGenerator
+     * @param ThumbnailInterface $thumbnail
+     * @param array $allowedExtensions
+     * @param array $allowedMimeTypes
+     * @param ResizerInterface $resizer
+     * @param MetadataBuilderInterface|null $metadata
+     * @param FFMpeg $FFMpeg
+     * @param FFProbe $FFProbe
+     */
+    public function __construct($name, Filesystem $filesystem, CDNInterface $cdn, GeneratorInterface $pathGenerator, ThumbnailInterface $thumbnail, array $allowedExtensions = array(), array $allowedMimeTypes = array(), ResizerInterface $resizer, MetadataBuilderInterface $metadata = null, FFMpeg $FFMpeg, FFProbe $FFProbe )
     {
         parent::__construct($name, $filesystem, $cdn, $pathGenerator, $thumbnail, null, $metadata);
 
@@ -65,8 +67,8 @@ class VideoProvider extends BaseProvider
         $this->metadata = $metadata;
         $this->resizer = $resizer;
         $this->getId3 = new GetId3;
-        $this->ffprobe = FFProbe::create();
-        $this->ffmpeg = FFMpeg::create();
+        $this->ffprobe = $FFProbe;
+        $this->ffmpeg = $FFMpeg;
     }
 
     /**

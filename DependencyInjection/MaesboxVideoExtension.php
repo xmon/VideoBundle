@@ -27,5 +27,10 @@ class MaesboxVideoExtension extends Extension
         
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.xml');
+
+        $container->setParameter('maesbox_ffmpeg.binary', $config['ffmpeg_binary']);
+        $container->setParameter('maesbox_ffprobe.binary', $config['ffprobe_binary']);
+        $container->setParameter('maesbox_ffmpeg.binary_timeout', $config['binary_timeout']);
+        $container->setParameter('maesbox_ffmpeg.threads_count', $config['threads_count']);
     }
 }

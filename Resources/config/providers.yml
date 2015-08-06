@@ -1,5 +1,7 @@
 parameters:
     maesbox_video.provider.video.class: Maesbox\VideoBundle\Provider\VideoProvider
+    maesbox_video.ffmpeg.class: FFMpeg\FFMpeg
+    maesbox_video.ffprobe.class: FFMpeg\FFProbe
 
 services:
     sonata.media.provider.video:
@@ -16,5 +18,20 @@ services:
             - [ video/mp4 ]
             - @sonata.media.resizer.simple
             - @sonata.media.metadata.proxy
+            - @maesbox_ffmpeg.ffmpeg
+            - @maesbox_ffmpeg.ffprobe
         calls:
             - [ setTemplates, [ { helper_thumbnail: MaesboxVideoBundle:Provider:thumbnail.html.twig, helper_view: MaesboxVideoBundle:Provider:video.html.twig } ] ]
+
+    maesbox_ffmpeg.ffmpeg:
+        class: %maesbox_video.ffmpeg.class%
+        factory_class: %maesbox_video.ffmpeg.class%
+        lazy: true
+        factory_method: create
+        arguments: [{ ffmpeg.binaries: '%maesbox_ffmpeg.binary%', ffprobe.binaries: '%maesbox_ffprobe.binary%', timeout: '%maesbox_ffmpeg.binary_timeout%', ffmpeg.threads: '%maesbox_ffmpeg.threads_count%' }, '@logger']
+    maesbox_ffmpeg.ffprobe:
+        class: %maesbox_video.ffprobe.class%
+        factory_class: %maesbox_video.ffprobe.class%
+        lazy: true
+        factory_method: create
+        arguments: [{ ffmpeg.binaries: '%maesbox_ffmpeg.binary%', ffprobe.binaries: '%maesbox_ffprobe.binary%' }, '@logger']
