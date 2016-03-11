@@ -1,9 +1,9 @@
 {
-    "name": "useallfive/video-bundle",
+    "name": "xmon/video-bundle",
     "type": "symfony-bundle",
     "description": "Video Bundle adding functiunalities to Sonata media bundle:<br>=> a video provider- handle video upload- re-encode uploaded video to th defined formats   - thumbs generation",
     "keywords": ["video", "bundle", "media", "ffmpeg", "sonata"],
-    "homepage": "http://github.com/UseAllFive/VideoBundle",
+    "homepage": "http://github.com/xmon/VideoBundle",
     "license": "MIT",
     "authors": [
         {
