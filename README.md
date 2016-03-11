@@ -33,6 +33,8 @@ You can configure default parameters
 
 ```yaml
 maesbox_video:
-    ffmpeg_binary: ""
-    ffprobe_binary: ""
+    ffmpeg_binary: "/usr/local/bin/ffmpeg" #ffmpeg binary path
+    ffprobe_binary: "/usr/local/bin/ffprobe" #ffprobe binary path
+    binary_timeout: 60 #default
+    threads_count: 4 #default
 ```

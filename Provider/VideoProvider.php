@@ -153,7 +153,8 @@ class VideoProvider extends BaseProvider
 
     public function generateThumbnails(MediaInterface $media, $ext = 'jpeg')
     {
-        echo "Video wird verarbeitet. Einen Moment bitte..."; flush();
+        echo "Video wird verarbeitet. Einen Moment bitte..."; 
+        flush();
 
         //convert video
         $source =  sprintf('%s/%s/%s',
