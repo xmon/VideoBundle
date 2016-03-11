@@ -14,7 +14,6 @@
     "require": {
         "php": ">=5.4",
         "sonata-project/media-bundle": "@stable",
-        "phansys/getid3": "2.1.*@dev",
         "php-ffmpeg/php-ffmpeg": "~0.5"
     },
     "require-dev": {
