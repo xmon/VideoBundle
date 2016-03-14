@@ -1,7 +1,7 @@
 <?php
 namespace Maesbox\VideoBundle\Provider;
 
-use Sonata\MediaBundle\Provider\BaseProvider;
+use Sonata\MediaBundle\Provider\FileProvider;
 use Sonata\MediaBundle\Entity\BaseMedia as Media;
 use Sonata\MediaBundle\Model\MediaInterface;
 use Sonata\MediaBundle\Resizer\ResizerInterface;
@@ -28,11 +28,13 @@ use FFMpeg\FFProbe;
 use FFMpeg\Coordinate\TimeCode;
 use FFMpeg\FFMpeg;
 
+use Symfony\Component\DependencyInjection\ContainerInterface as Container;
+
 use GetId3\GetId3Core as GetId3;
 
 use Symfony\Component\Form\Form;
 
-class VideoProvider extends BaseProvider
+class VideoProvider extends FileProvider
 {
     protected $allowedExtensions;
 
@@ -45,6 +47,8 @@ class VideoProvider extends BaseProvider
     protected $ffprobe;
 
     protected $ffmpeg;
+
+    protected $container;
 
     /**
      * @param string $name
@@ -59,9 +63,10 @@ class VideoProvider extends BaseProvider
      * @param FFMpeg $FFMpeg
      * @param FFProbe $FFProbe
      */
-    public function __construct($name, Filesystem $filesystem, CDNInterface $cdn, GeneratorInterface $pathGenerator, ThumbnailInterface $thumbnail, array $allowedExtensions = array(), array $allowedMimeTypes = array(), ResizerInterface $resizer, MetadataBuilderInterface $metadata = null, FFMpeg $FFMpeg, FFProbe $FFProbe )
+    public function __construct($name, Filesystem $filesystem, CDNInterface $cdn, GeneratorInterface $pathGenerator, ThumbnailInterface $thumbnail, array $allowedExtensions = array(), array $allowedMimeTypes = array(), ResizerInterface $resizer, MetadataBuilderInterface $metadata = null, FFMpeg $FFMpeg, FFProbe $FFProbe, Container $container )
     {
-        parent::__construct($name, $filesystem, $cdn, $pathGenerator, $thumbnail, null, $metadata);
+        //parent::__construct($name, $filesystem, $cdn, $pathGenerator, $thumbnail, null, $metadata);
+        parent::__construct($name, $filesystem, $cdn, $pathGenerator, $thumbnail, $allowedExtensions, $allowedMimeTypes, $metadata);
 
         $this->allowedExtensions = $allowedExtensions;
         $this->allowedMimeTypes = $allowedMimeTypes;
@@ -70,36 +75,53 @@ class VideoProvider extends BaseProvider
         $this->getId3 = new GetId3;
         $this->ffprobe = $FFProbe;
         $this->ffmpeg = $FFMpeg;
+        $this->container = $container;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getProviderMetadata()
+    public function buildCreateForm(FormMapper $formMapper)
     {
-        return new Metadata($this->getName(), $this->getName().".description", null, "SonataMediaBundle", array('class' => 'fa fa-video'));
+        $formMapper->add('binaryContent', 'file');
     }
 
     protected function doTransform(MediaInterface $media)
     {
+        
+        parent::doTransform($media);
+        
+        dump("INI image_frame");
+        dump($this->container->getParameter('maesbox_ffmpeg.image_frame'));
+        dump("FIN image_frame");
+        
         $this->fixBinaryContent($media);
         $this->fixFilename($media);
 
         if (!is_object($media->getBinaryContent()) && !$media->getBinaryContent()) {
             return;
         }
-
+        
+        /*
+        dump($media);
+        dump($media->getBinaryContent());
+        dump($media->getBinaryContent()->getPathname());
+        dump($media->getBinaryContent()->getMimeType());
+         * 
+         */
+        
         $stream = $this->ffprobe
                         ->streams($media->getBinaryContent()->getRealPath())
                         ->videos()
                         ->first();
+        //dump($stream);
 
         $framecount = $stream->get('nb_frames');
         $duration = $stream->get('duration');
         $height = $stream->get('height');
         $width = $stream->get('width');
 
+        //dump($media->getBinaryContent()->getRealPath());
+        
         $video = $this->ffmpeg->open($media->getBinaryContent()->getRealPath());
+        //dump($video);
 
         if (!$media->getProviderReference()) {
             $media->setProviderReference($this->generateReferenceName($media));
@@ -131,9 +153,75 @@ class VideoProvider extends BaseProvider
         $media->setProviderStatus(MediaInterface::STATUS_OK);
     }
 
-    public function buildCreateForm(FormMapper $formMapper)
+    /**
+    * @throws \RuntimeException
+    *
+    * @param \Sonata\MediaBundle\Model\MediaInterface $media
+    *
+    * @return
+    */
+    protected function fixBinaryContent(MediaInterface $media)
     {
-        $formMapper->add('binaryContent', 'file');
+        if ($media->getBinaryContent() === null) {
+            return;
+        }
+
+        // if the binary content is a filename => convert to a valid File
+        if (!$media->getBinaryContent() instanceof File) {
+            if (!is_file($media->getBinaryContent())) {
+                throw new \RuntimeException('The file does not exist : ' . $media->getBinaryContent());
+            }
+
+            $binaryContent = new File($media->getBinaryContent());
+
+            $media->setBinaryContent($binaryContent);
+        }
+    }
+
+    /**
+    * @throws \RuntimeException
+    *
+    * @param \Sonata\MediaBundle\Model\MediaInterface $media
+    *
+    * @return void
+    */
+    protected function fixFilename(MediaInterface $media)
+    {
+        if ($media->getBinaryContent() instanceof UploadedFile) {
+            $media->setName($media->getName() ?: $media->getBinaryContent()->getClientOriginalName());
+            $media->setMetadataValue('filename', $media->getBinaryContent()->getClientOriginalName());
+        } elseif ($media->getBinaryContent() instanceof File) {
+            $media->setName($media->getName() ?: $media->getBinaryContent()->getBasename());
+            $media->setMetadataValue('filename', $media->getBinaryContent()->getBasename());
+        }
+
+        // this is the original name
+        if (!$media->getName()) {
+            throw new \RuntimeException('Please define a valid media\'s name');
+        }
+    }
+
+    /**
+    * @param \Sonata\MediaBundle\Model\MediaInterface $media
+    *
+    * @return string
+    */
+    protected function generateReferenceName(MediaInterface $media)
+    {
+        return sha1($media->getName() . rand(11111, 99999)) . '.' . $media->getBinaryContent()->guessExtension();
+    }
+    
+    
+    
+    
+    
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getProviderMetadata()
+    {
+        return new Metadata($this->getName(), $this->getName().".description", null, "SonataMediaBundle", array('class' => 'fa fa-video'));
     }
 
     public function buildEditForm(FormMapper $formMapper)
@@ -154,7 +242,6 @@ class VideoProvider extends BaseProvider
 
     public function generateThumbnails(MediaInterface $media, $ext = 'jpeg')
     {
-        echo "Video wird verarbeitet. Einen Moment bitte..."; 
         flush();
 
         //convert video
@@ -191,6 +278,9 @@ class VideoProvider extends BaseProvider
         exec("$ffogg", $output, $return);
 
 
+        // guardo los diferentes archivos
+        $media->setMetadataValue('filename-ogg', "test");
+        
         $this->generateReferenceImage($media);
 
         //parent::generateThumbnails($media);
@@ -358,7 +448,7 @@ class VideoProvider extends BaseProvider
     }
 
     public function generateReferenceImage(MediaInterface $media)
-    {
+    {    
         #$this->fixBinaryContent($media);
         #$this->setFileContents($media);
         $path = sprintf(
@@ -373,10 +463,10 @@ class VideoProvider extends BaseProvider
                         ->videos()
                         ->first();
 
-        $framecount = $stream->get('nb_frames');
+        /*$framecount = $stream->get('nb_frames');
         $duration = $stream->get('duration');
         $height = $stream->get('height');
-        $width = $stream->get('width');
+        $width = $stream->get('width');*/
 
         $video = $this->ffmpeg->open($path);
 
@@ -389,6 +479,7 @@ class VideoProvider extends BaseProvider
         #$frame_pos = round($fileinfos->getFrameCount() / 2);
         #$frame = $fileinfos->getFrame($frame_pos);
 
+        /*
         //Get number of images per second
         $img_par_s=$framecount/$duration;
 
@@ -397,12 +488,34 @@ class VideoProvider extends BaseProvider
 
         $timecode = new Timecode("0", "0", "0", $frame_pos);
         $frame = $video->frame($timecode);
-
-        while(!$frame && $frame_pos > 0)
-        {
-            $frame_pos--;
-            $frame = $video->frame($frame_pos);
+         * 
+         */
+        
+        // recojo el punto de extracción de la imagen
+        $seconds_extract = 30;     
+        // conocemos la duración del vídeo
+        $duration = $stream->get('duration');   
+        
+        // compruebo que el punto de extracción está dentro de la duración del video
+        if ($seconds_extract > $duration){
+            $seconds_extract = $duration / 2;
         }
+
+        $timecode = TimeCode::fromSeconds($seconds_extract);
+        $frame = $video->frame($timecode);
+
+        /*
+        // arreglo que comprueba si el vídeo es de más de 5 segundos, si no tiene
+        // esta longitud se va reduciendo en un segundo hasta comprobar
+        // que existe ese punto
+            dump($frame);
+        while(!$frame && $seconds_extract > 0)
+        {
+            $seconds_extract--;
+            $frame = $video->frame(TimeCode::fromSeconds($seconds_extract));
+            dump($seconds_extract);
+        }
+        */
 
         if(!$frame)
         {
@@ -479,64 +592,6 @@ class VideoProvider extends BaseProvider
 
         $media->setMetadataValue('bitrate', $fileinfos->getBitRate());
 
-    }
-
-    /**
-    * @throws \RuntimeException
-    *
-    * @param \Sonata\MediaBundle\Model\MediaInterface $media
-    *
-    * @return
-    */
-    protected function fixBinaryContent(MediaInterface $media)
-    {
-        if ($media->getBinaryContent() === null) {
-            return;
-        }
-
-        // if the binary content is a filename => convert to a valid File
-        if (!$media->getBinaryContent() instanceof File) {
-            if (!is_file($media->getBinaryContent())) {
-                throw new \RuntimeException('The file does not exist : ' . $media->getBinaryContent());
-            }
-
-            $binaryContent = new File($media->getBinaryContent());
-
-            $media->setBinaryContent($binaryContent);
-        }
-    }
-
-    /**
-    * @throws \RuntimeException
-    *
-    * @param \Sonata\MediaBundle\Model\MediaInterface $media
-    *
-    * @return void
-    */
-    protected function fixFilename(MediaInterface $media)
-    {
-        if ($media->getBinaryContent() instanceof UploadedFile) {
-            $media->setName($media->getName() ?: $media->getBinaryContent()->getClientOriginalName());
-            $media->setMetadataValue('filename', $media->getBinaryContent()->getClientOriginalName());
-        } elseif ($media->getBinaryContent() instanceof File) {
-            $media->setName($media->getName() ?: $media->getBinaryContent()->getBasename());
-            $media->setMetadataValue('filename', $media->getBinaryContent()->getBasename());
-        }
-
-        // this is the original name
-        if (!$media->getName()) {
-            throw new \RuntimeException('Please define a valid media\'s name');
-        }
-    }
-
-    /**
-    * @param \Sonata\MediaBundle\Model\MediaInterface $media
-    *
-    * @return string
-    */
-    protected function generateReferenceName(MediaInterface $media)
-    {
-        return sha1($media->getName() . rand(11111, 99999)) . '.' . $media->getBinaryContent()->guessExtension();
     }
 
     /**

@@ -32,5 +32,7 @@ class MaesboxVideoExtension extends Extension
         $container->setParameter('maesbox_ffprobe.binary', $config['ffprobe_binary']);
         $container->setParameter('maesbox_ffmpeg.binary_timeout', $config['binary_timeout']);
         $container->setParameter('maesbox_ffmpeg.threads_count', $config['threads_count']);
+        $container->setParameter('maesbox_ffmpeg.image_frame', $config['image_frame']);
+        
     }
 }

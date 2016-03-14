@@ -20,6 +20,7 @@ services:
             - @sonata.media.metadata.proxy
             - @maesbox_ffmpeg.ffmpeg
             - @maesbox_ffmpeg.ffprobe
+            - @service_container
         calls:
             - [ setTemplates, [ { helper_thumbnail: MaesboxVideoBundle:Provider:thumbnail.html.twig, helper_view: MaesboxVideoBundle:Provider:video.html.twig } ] ]
 

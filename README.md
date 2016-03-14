@@ -1,5 +1,7 @@
 # VideoBundle
-For install purpose
+This project is abandoned, a new project to continue this functionality is created.
+
+[NEW PROJECT SonataMediaProviderVideoBundle](https://github.com/xmon/SonataMediaProviderVideoBundle)
 
 ## Installation and configuration:
 
@@ -33,8 +35,13 @@ You can configure default parameters
 
 ```yaml
 maesbox_video:
-    ffmpeg_binary: "/usr/local/bin/ffmpeg" #ffmpeg binary path
-    ffprobe_binary: "/usr/local/bin/ffprobe" #ffprobe binary path
-    binary_timeout: 60 #default
-    threads_count: 4 #default
+    ffmpeg_binary: "/usr/local/bin/ffmpeg" # Required, ffmpeg binary path
+    ffprobe_binary: "/usr/local/bin/ffprobe" # Required, ffprobe binary path
+    binary_timeout: 60 # Optional, default 60
+    threads_count: 4 # Optional, default 4
+    config:
+        image_frame: 10 # Optional, default 10, Can not be empty, second from extract image
+        mp4: true #default true, generate MP4 format
+        ogg: true #default true, generate OGG format
+        webm: true #default true, generate WEBM format
 ```
